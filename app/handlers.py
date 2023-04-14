@@ -3,17 +3,12 @@
 
 @author: sebis
 """
-from typing import List, Dict, Any
 import random
 
 from app import controllers
 from flask_dialogflow.conversation import V2beta1DialogflowConversation
 from .queries import QUERIES_SEARCH
 from flask import render_template
-
-last_request: V2beta1DialogflowConversation
-last_response: List[Dict[str, Any]]
-last_selected_article: int
 
 
 # define sub handlers
@@ -28,7 +23,7 @@ def news_overview_search_intent(conv: V2beta1DialogflowConversation) -> V2beta1D
     controllers.write_to_log_file(conv.query_text, conv.intent)
     results = controllers.query_knowledge_graph(QUERIES_SEARCH["overview_articles"])
 
-    set_last_request_and_response(conv, results)
+    controllers.update_state(last_request=conv, last_response=results)
 
     response = render_template("news_overview_search_first")
     response += controllers.construct_title_topline_response(results)
@@ -43,20 +38,23 @@ def news_overview_search_intent(conv: V2beta1DialogflowConversation) -> V2beta1D
 def news_suggest_search_intent(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
     """Returns one random of the ten most recent articles from domestic, foreign and economy each."""
     controllers.write_to_log_file(conv.query_text, conv.intent)
-    global last_request
-    results = controllers.query_knowledge_graph(QUERIES_SEARCH["random_suggestion_articles_overview"])
-    if "last_request" in globals():
-        if last_request.parameters.get("ressort"):
-            ressort = last_request.parameters["ressort"]
-            results = controllers.query_knowledge_graph(QUERIES_SEARCH["random_suggestion_articles_by_ressort"],
-                                                        {"ressort": ressort})
-        elif last_request.parameters.get("any"):
-            entity = last_request.parameters["any"][0]
-            entity = controllers.find_most_similar_entity(entity)
-            results = controllers.query_knowledge_graph(QUERIES_SEARCH["random_suggestion_articles_by_entity"],
-                                                        {"entity": entity})
 
-    set_last_request_and_response(conv, results)
+    state = controllers.get_state()
+    last_request_any = state["last_request_any"]
+    last_request_ressort = state["last_request_ressort"]
+
+    results = controllers.query_knowledge_graph(QUERIES_SEARCH["random_suggestion_articles_overview"])
+    if last_request_ressort:
+        ressort = last_request_ressort
+        results = controllers.query_knowledge_graph(QUERIES_SEARCH["random_suggestion_articles_by_ressort"],
+                                                    {"ressort": ressort})
+    elif last_request_any:
+        entity = last_request_any[0]
+        entity = controllers.find_most_similar_entity(entity)
+        results = controllers.query_knowledge_graph(QUERIES_SEARCH["random_suggestion_articles_by_entity"],
+                                                    {"entity": entity})
+
+    controllers.update_state(last_request=conv, last_response=results)
 
     response = render_template("news_suggestion_search_first")
     response += controllers.construct_title_topline_response(results)
@@ -74,7 +72,7 @@ def news_resort_list_intent(conv: V2beta1DialogflowConversation) -> V2beta1Dialo
 
     results = controllers.query_knowledge_graph(QUERIES_SEARCH["all_ressorts"])
 
-    set_last_request_and_response(conv, results)
+    controllers.update_state(last_request=conv, last_response=results)
 
     response = render_template("news_ressort_list_first")
     resorts = [entry["name"] for entry in results]
@@ -107,7 +105,7 @@ def news_resort_search_intent(conv: V2beta1DialogflowConversation) -> V2beta1Dia
     ressort = conv.parameters["ressort"]
     results = controllers.query_knowledge_graph(QUERIES_SEARCH["top_articles_by_ressort"], {"ressort": ressort})
 
-    set_last_request_and_response(conv, results)
+    controllers.update_state(last_request=conv, last_response=results)
 
     response = "<speak> <p><s>Ich habe folgende Artikel aus Kategorie " + ressort + " gefunden.</s></p> <break time=\"250ms\"/> <p>"
     response += controllers.construct_title_topline_response(results)
@@ -127,7 +125,7 @@ def news_entity_search_intent(conv: V2beta1DialogflowConversation) -> V2beta1Dia
     entity = controllers.find_most_similar_entity(entity)
     results = controllers.query_knowledge_graph(QUERIES_SEARCH["top_articles_by_entity"], {"entity": entity})
 
-    set_last_request_and_response(conv, results)
+    controllers.update_state(last_request=conv, last_response=results)
 
     if len(results) == 0:
         response = "Ich habe leider keine Artikel über " + entity + " gefunden."
@@ -148,7 +146,8 @@ def news_select_article_by_number(conv: V2beta1DialogflowConversation) -> V2beta
     """Returns the topline, title and text and most related entities of the selected article."""
     controllers.write_to_log_file(conv.query_text, conv.intent)
     index = int(conv.parameters["number"][0]) - 1
-    global last_selected_article, last_response
+    state = controllers.get_state()
+    last_response = state["last_response"]
 
     if index >= len(last_response) or index < 0:
         response = "Bitte sage eine Zahl zwischen 1 und " + str(len(last_response))
@@ -160,7 +159,7 @@ def news_select_article_by_number(conv: V2beta1DialogflowConversation) -> V2beta
         response = controllers.construct_similar_entites_response(article)
         conv.ask(response)
         controllers.write_to_log_file(response, conv.intent)
-        last_selected_article = index
+        controllers.update_state(None, None, index)
 
     return conv
 
@@ -168,7 +167,8 @@ def news_select_article_by_number(conv: V2beta1DialogflowConversation) -> V2beta
 def news_select_article_by_keyword(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
     """Returns the topline, title and text and most related entities of the selected article."""
     entity = conv.parameters["any"].lower()
-    global last_response
+    state = controllers.get_state()
+    last_response = state["last_response"]
 
     headlines = []
     for entry in last_response:
@@ -181,8 +181,7 @@ def news_select_article_by_keyword(conv: V2beta1DialogflowConversation) -> V2bet
 
     controllers.write_to_log_file(conv.query_text, conv.intent)
 
-    global last_selected_article
-    last_selected_article = index
+    controllers.update_state(None, None, index)
 
     article = last_response[index]
 
@@ -195,7 +194,9 @@ def news_select_article_by_keyword(conv: V2beta1DialogflowConversation) -> V2bet
 
 def control_next_article_intent(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
     """Returns the next Article based on the last searched articles."""
-    global last_selected_article, last_response
+    state = controllers.get_state()
+    last_response = state["last_response"]
+    last_selected_article = state["last_selected_article"]
 
     if last_selected_article + 1 >= len(last_response):
         return controllers.log_and_ask(conv, "selection_last")
@@ -206,7 +207,7 @@ def control_next_article_intent(conv: V2beta1DialogflowConversation) -> V2beta1D
         conv.ask(response)
         controllers.write_to_log_file(response, conv.intent)
 
-        last_selected_article += 1
+        controllers.update_state(None, None, last_selected_article + 1)
 
     return conv
 
@@ -214,7 +215,9 @@ def control_next_article_intent(conv: V2beta1DialogflowConversation) -> V2beta1D
 def control_repeat_article_intent(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
     """Returns the already read Article based on the last searched articles."""
     controllers.write_to_log_file(conv.query_text, conv.intent)
-    global last_selected_article, last_response
+    state = controllers.get_state()
+    last_response = state["last_response"]
+    last_selected_article = state["last_selected_article"]
 
     article = last_response[last_selected_article]
     response = controllers.construct_similar_entites_response(article)
@@ -226,7 +229,9 @@ def control_repeat_article_intent(conv: V2beta1DialogflowConversation) -> V2beta
 
 def control_previous_article_intent(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
     """Returns the already read Article based on the last searched articles."""
-    global last_selected_article, last_response
+    state = controllers.get_state()
+    last_response = state["last_response"]
+    last_selected_article = state["last_selected_article"]
 
     if last_selected_article - 1 < 0:
         return controllers.log_and_ask(conv, "selection_first")
@@ -237,7 +242,7 @@ def control_previous_article_intent(conv: V2beta1DialogflowConversation) -> V2be
         conv.ask(response)
         controllers.write_to_log_file(response, conv.intent)
 
-        last_selected_article -= 1
+        controllers.update_state(None, None, last_selected_article - 1)
 
     return conv
 
@@ -290,10 +295,3 @@ def yes_no_handler(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConv
         conv.contexts.set("select", 1)
 
     return controllers.log_and_ask(conv, "yes_no")
-
-
-def set_last_request_and_response(conv: V2beta1DialogflowConversation, results: List[Dict[str, Any]]):
-    """Sets the last_request and last_response variables."""
-    global last_request, last_response
-    last_request = conv
-    last_response = results

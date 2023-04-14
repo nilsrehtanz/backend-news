@@ -21,6 +21,7 @@ mongo_uri = "mongodb+srv://nilsrehtanz:kGLThHw9ljQzAosQ@news-agent-logs.xblynv5.
 client = MongoClient(mongo_uri)
 db = client["logs_database"]
 logs_collection = db["logs"]
+state_collection = db['state']
 
 
 # set up test route

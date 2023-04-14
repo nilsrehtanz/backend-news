@@ -8,7 +8,7 @@ import re
 import random
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from app import driver, logs_collection
+from app import driver, logs_collection, state_collection
 from .queries import QUERIES_SEARCH
 from flask_dialogflow.conversation import V2beta1DialogflowConversation
 from flask import render_template
@@ -187,3 +187,29 @@ def log_and_ask(conv: V2beta1DialogflowConversation, template_name: str) -> V2be
     write_to_log_file(response, conv.intent)
     conv.ask(response)
     return conv
+
+
+def get_state():
+    state = state_collection.find_one()
+    if not state:
+        state = {
+            "last_request_any": None,
+            "last_request_ressort": None,
+            "last_response": None,
+            "last_selected_article": None,
+        }
+        state_collection.insert_one(state)
+    return state
+
+
+def update_state(last_request=None, last_response=None, last_selected_article=None):
+    update = {}
+    if last_request is not None:
+        update["last_request_any"] = last_request.parameters.get("any") if last_request.parameters else None
+        update["last_request_ressort"] = last_request.parameters.get("ressort") if last_request.parameters else None
+    if last_response is not None:
+        update["last_response"] = last_response
+    if last_selected_article is not None:
+        update["last_selected_article"] = last_selected_article
+
+    state_collection.update_one({}, {"$set": update})
