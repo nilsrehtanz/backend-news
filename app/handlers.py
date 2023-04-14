@@ -48,11 +48,13 @@ def news_suggest_search_intent(conv: V2beta1DialogflowConversation) -> V2beta1Di
         ressort = last_request_ressort
         results = controllers.query_knowledge_graph(QUERIES_SEARCH["random_suggestion_articles_by_ressort"],
                                                     {"ressort": ressort})
+        controllers.updated_state_ressort_entity(ressort, None)
     elif last_request_any:
         entity = last_request_any[0]
         entity = controllers.find_most_similar_entity(entity)
         results = controllers.query_knowledge_graph(QUERIES_SEARCH["random_suggestion_articles_by_entity"],
                                                     {"entity": entity})
+        controllers.updated_state_ressort_entity(None, entity)
 
     controllers.update_state(last_request=conv, last_response=results)
 
