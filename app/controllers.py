@@ -215,7 +215,7 @@ def update_state(last_request=None, last_response=None, last_selected_article=No
     state_collection.update_one({}, {"$set": update})
 
 
-def updated_state_ressort_entity(last_request_ressort=None, last_request_any=None):
+def update_state_ressort_entity(last_request_ressort=None, last_request_any=None):
     update = {}
     if last_request_ressort is not None:
         update["last_request_ressort"] = last_request_ressort
