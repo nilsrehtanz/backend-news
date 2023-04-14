@@ -70,7 +70,7 @@ def write_to_log_file(text, intent):
     }
 
     # Insert the log entry into the MongoDB Atlas collection
-    # logs_collection.insert_one(log_entry)
+    logs_collection.insert_one(log_entry)
 
 
 def determine_most_similar_headline_index(headlines, utterance: str) -> int:
