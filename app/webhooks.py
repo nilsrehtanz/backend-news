@@ -27,14 +27,14 @@ def news_suggest_search_intent_handler(conv: V2beta1DialogflowConversation) -> V
     return handlers.news_suggest_search_intent(conv)
 
 
-@agent.handle(intent="news.resort.list")
-def news_ressort_list_handler(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
-    return handlers.news_resort_list_intent(conv)
+@agent.handle(intent="news.category.list")
+def news_category_list_handler(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
+    return handlers.news_category_list_intent(conv)
 
 
-@agent.handle(intent="news.resort.search")
-def news_ressort_search_handler(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
-    return handlers.news_resort_search_intent(conv)
+@agent.handle(intent="news.category.search")
+def news_category_search_handler(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
+    return handlers.news_category_search_intent(conv)
 
 
 @agent.handle(intent="news.entity.search")
@@ -117,11 +117,11 @@ def news_overview_search_no_handler(conv: V2beta1DialogflowConversation) -> V2be
     return handlers.yes_no_handler(conv)
 
 
-@agent.handle(intent="news.ressort.search - yes")
-def news_ressort_search_yes_handler(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
+@agent.handle(intent="news.category.search - yes")
+def news_category_search_yes_handler(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
     return handlers.yes_no_handler(conv)
 
 
-@agent.handle(intent="news.ressort.search - no")
-def news_ressort_search_no_handler(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
+@agent.handle(intent="news.category.search - no")
+def news_category_search_no_handler(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
     return handlers.yes_no_handler(conv)

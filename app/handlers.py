@@ -68,7 +68,7 @@ def news_suggest_search_intent(conv: V2beta1DialogflowConversation) -> V2beta1Di
     return conv
 
 
-def news_resort_list_intent(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
+def news_category_list_intent(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
     """Returns a list of all available resorts in the knowledge graph."""
     controllers.write_to_log_file(conv.query_text, conv.intent)
 
@@ -100,7 +100,7 @@ def news_resort_list_intent(conv: V2beta1DialogflowConversation) -> V2beta1Dialo
     return conv
 
 
-def news_resort_search_intent(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
+def news_category_search_intent(conv: V2beta1DialogflowConversation) -> V2beta1DialogflowConversation:
     """Returns the three most recent articles by the given resort."""
     controllers.write_to_log_file(conv.query_text, conv.intent)
 
